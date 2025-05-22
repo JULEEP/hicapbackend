@@ -10,6 +10,7 @@ import {
      resetPassword,
      submitForm,
      getSubmittedFormsByUser,
+     logoutUser,
     } from '../Controller/UserController.js'; // Import UserController
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.post('/register', registerUser);
 
 // Login Route
 router.post('/login', loginUser);
+router.post('/logout', logoutUser);
 // Get user details (GET)
 router.get('/get-user/:userId', getUser);  // Adding a middleware to verify JWT token
 
