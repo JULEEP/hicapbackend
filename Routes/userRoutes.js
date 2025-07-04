@@ -11,6 +11,13 @@ import {
      submitForm,
      getSubmittedFormsByUser,
      logoutUser,
+     submitContactUsForm,
+     submitContactUsFormWithDescription,
+     addCourse,
+     getCourses,
+     enrollInCourse,
+     getEnrolledCourses,
+     generatePasswordForAdmin,
     } from '../Controller/UserController.js'; // Import UserController
 const router = express.Router();
 
@@ -36,6 +43,13 @@ router.post('/verify', verifyMobile);  // Get profile by userId
 router.post('/reset-password', resetPassword);  // Get profile by userId
 router.post('/submitform/:userId', submitForm);  // Get profile by userId
 router.get('/getsubmittedform/:userId', getSubmittedFormsByUser);  // Get profile by userId
+router.post('/contact-us', submitContactUsForm);  // Get profile by userId
+router.post('/contact', submitContactUsFormWithDescription);  // Get profile by userId
+router.post('/add-courses', addCourse);
+router.get('/allcourses', getCourses);
+router.post('/enrollcourse', enrollInCourse);
+router.get('/myenrolledcourses/:userId', getEnrolledCourses);  // Get profile by userId
+router.post('/generatepassword/:userId', generatePasswordForAdmin);  // Get profile by userId
 
 
 

@@ -25,6 +25,31 @@ const userSchema = new mongoose.Schema({
 confirmPassword: {
   type: String,
 },
+userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  courseId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Course',
+  },
+  fullName: {
+    type: String,
+  },
+  email: {
+    type: String,
+  },
+  phoneNumber: {
+    type: String,
+  },
+  enrollmentDate: {
+    type: Date,
+    default: Date.now,
+  },
+  additionalMessage: {
+    type: String,
+    default: '',
+  },
 aadhaarCardNumber: {
   type: String,
   unique: true

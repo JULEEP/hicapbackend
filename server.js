@@ -50,7 +50,7 @@ app.use(fileUpload({
 app.get("/", (req, res) => {
     res.json({
         status: "success",    // A key to indicate the response status
-        message: "Welcome to our service!", // Static message
+        message: "Welcome to our college service!", // Static message
     });
 });
 
@@ -70,8 +70,9 @@ app.use('/api/college', collegeRoutes);
 
 
 
-// Start the server
-const port = process.env.PORT || 6000;
-server.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+const port = process.env.PORT || 6063;
+
+app.listen(port, '0.0.0.0', () => {
+console.log(`🚀 Server running on http://localhost:${port}`);
 });
+

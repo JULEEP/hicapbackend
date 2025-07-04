@@ -7,6 +7,9 @@ import cloudinary from '../config/cloudinary.js';
 import { fileURLToPath } from 'url';
 import College from '../Models/College.js';
 import Form from '../Models/Form.js';
+import ContactUsForm from '../Models/ContactUsForm.js';
+import Course from '../Models/Course.js';
+import Enrollment from '../Models/Enrollment.js';
 
 
 
@@ -95,61 +98,48 @@ export const registerUser = async (req, res) => {
 
 
 export const loginUser = async (req, res) => {
-  const { mobile, password } = req.body;
+  const { phoneNumber, password } = req.body;
 
-  // 🔒 Validate input
-  if (!mobile || !password) {
-    return res.status(400).json({ error: 'Mobile number and password are required' });
+  if (!phoneNumber || !password) {
+    return res.status(400).json({ error: 'Phone number and password are required' });
   }
 
-  // 📞 Check mobile format
-  const mobilePattern = /^[0-9]{10}$/;
-  if (!mobilePattern.test(mobile)) {
-    return res.status(400).json({ error: 'Invalid mobile number format' });
+  const phonePattern = /^[0-9]{10}$/;
+  if (!phonePattern.test(phoneNumber)) {
+    return res.status(400).json({ error: 'Invalid phone number format' });
   }
 
   try {
-    // 🔍 Find user by mobile
-    const user = await User.findOne({ mobile });
+    // Find the user based on phone number
+    const user = await User.findOne({ phoneNumber });
 
-    // ❌ User not found
     if (!user) {
-      return res.status(404).json({ error: 'User not found. Please register first.' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // ❌ Password mismatch (no bcrypt used)
+    // Check if the password matches (this will be the password the admin generated)
     if (user.password !== password) {
-      return res.status(401).json({ error: 'Incorrect password' });
+      return res.status(400).json({ error: 'Incorrect password' });
     }
 
-    // ✅ Generate token
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: '1h' }
-    );
+    // Generate JWT token for user login
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
+      expiresIn: '1h',
+    });
 
-    // ✅ Respond with user info
     return res.status(200).json({
       message: 'Login successful',
       token,
       user: {
         _id: user._id,
-        name: user.name,
-        email: user.email || null,
-        mobile: user.mobile,
-        aadhaarCardNumber: user.aadhaarCardNumber || null,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      }
+        phoneNumber: user.phoneNumber,  // Changed to phoneNumber
+      },
     });
-
-  } catch (err) {
-    console.error('Login error:', err);
+  } catch (error) {
+    console.error('Login error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
-
 
 export const logoutUser = async (req, res) => {
   try {
@@ -503,5 +493,245 @@ export const getSubmittedFormsByUser = async (req, res) => {
   } catch (error) {
     console.error('Error fetching submitted forms:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
+export const submitContactUsForm = async (req, res) => {
+  try {
+    // Extract the fields from the request body
+    const { fullName, email, mobile, currentStatus } = req.body;
+
+    // Create a new contact form
+    const contactForm = new ContactUsForm({
+      fullName,
+      email,
+      mobile,
+      currentStatus,
+    });
+
+    // Save the contact form in the database
+    await contactForm.save();
+
+    // Optionally link this contact form to the user's profile
+    if (req.user) {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.contactForms.push(contactForm._id);
+        await user.save();
+      }
+    }
+
+    // Send back a success response with the contact form data
+    return res.status(201).json({
+      message: 'Your contact form has been submitted successfully!',
+      contactForm,
+    });
+  } catch (error) {
+    console.error('Error submitting contact form:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
+// Controller for submitting contact form with a description
+export const submitContactUsFormWithDescription = async (req, res) => {
+  try {
+    // Extract fields from the request body
+    const { fullName, email, mobile, description } = req.body;
+
+
+    // Create a new contact form document
+    const contactForm = new ContactUsForm({
+      fullName,
+      email,
+      mobile,
+      description,  // Use description instead of currentStatus
+    });
+
+    // Save the contact form to the database
+    await contactForm.save();
+
+    // Optionally link this contact form to the user's profile if the user is logged in
+    if (req.user) {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.contactForms.push(contactForm._id);  // Add the contact form ID to the user's contact forms
+        await user.save();
+      }
+    }
+
+    // Send a success response
+    return res.status(201).json({
+      message: 'Your contact form has been submitted successfully!',
+      contactForm,
+    });
+  } catch (error) {
+    console.error('Error submitting contact form:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
+// Add a new course
+export const addCourse = async (req, res) => {
+  try {
+    const { name, duration, liveProjects, rating, description, image } = req.body;
+
+    const newCourse = new Course({
+      name,
+      duration,
+      liveProjects,
+      rating,
+      description,
+      image,
+    });
+
+    await newCourse.save();
+
+    return res.status(201).json({
+      message: 'Course added successfully!',
+      course: newCourse,
+    });
+  } catch (error) {
+    console.error('Error adding course:', error);
+    return res.status(500).json({ message: 'Server error while adding course' });
+  }
+};
+
+// Get all courses
+export const getCourses = async (req, res) => {
+  try {
+    const courses = await Course.find();
+    return res.status(200).json(courses);
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    return res.status(500).json({ message: 'Server error while fetching courses' });
+  }
+};
+
+
+
+export const enrollInCourse = async (req, res) => {
+  const { courseId, fullName, email, phoneNumber, additionalMessage } = req.body;
+
+  try {
+    // Check if course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Check if user exists, and create the user if not found
+    let user = await User.findOne({ email });
+    if (!user) {
+      // If user doesn't exist, create new user
+      user = new User({
+        fullName,
+        email,
+        phoneNumber,
+        // Add any other fields you might want to include in the User model
+      });
+
+      // Save the user to the database
+      await user.save();
+    }
+
+    // Create a new enrollment record
+    const newEnrollment = new Enrollment({
+      courseId,
+      userId: user._id,  // Store userId in the enrollment
+      fullName,
+      email,
+      phoneNumber,
+      additionalMessage,
+    });
+
+    // Save the enrollment to the database
+    const enrollment = await newEnrollment.save();
+
+    // Optionally, add the course to the user's enrolledCourses
+    user.enrolledCourses = user.enrolledCourses || [];
+    user.enrolledCourses.push({
+      courseId,
+      courseName: course.name,
+      enrollmentDate: new Date(),
+    });
+
+    // Save the updated user document with the enrolled course
+    await user.save();
+
+    return res.status(201).json({
+      message: 'Enrollment successful',
+      enrollment,
+      user,
+    });
+  } catch (error) {
+    console.error('Error enrolling:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
+
+
+// Controller to get enrolled courses for a specific user and populate course details
+export const getEnrolledCourses = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find all the enrolled courses for the user and populate the courseId field
+    const enrolledCourses = await Enrollment.find({ userId })
+      .populate('courseId', 'name description duration liveProjects rating image') // Populate the required fields of the course
+      .exec();
+
+    if (!enrolledCourses || enrolledCourses.length === 0) {
+      return res.status(404).json({ message: 'No courses found for this user.' });
+    }
+
+    // Respond with the enrolled courses
+    return res.status(200).json(enrolledCourses);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error. Could not fetch enrolled courses.' });
+  }
+};
+
+
+// Helper function to generate a random 4-digit password
+const generateRandomPassword = () => {
+  return Math.floor(1000 + Math.random() * 9000).toString(); // Generates a 4-digit number
+};
+
+export const generatePasswordForAdmin = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find the user by userId
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate a new 4-digit random password
+    const newPassword = generateRandomPassword();
+
+    // Update the user with the generated password
+    user.password = newPassword;
+
+    // Save the updated user document
+    await user.save();
+
+    // Return the generated password (for admin reference)
+    return res.status(200).json({
+      message: 'Password generated and saved successfully!',
+      generatedPassword: newPassword,  // Admin gets the password to provide to the user
+    });
+  } catch (error) {
+    console.error('Error generating password:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
